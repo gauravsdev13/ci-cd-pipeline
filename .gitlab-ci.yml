@@ -1,0 +1,29 @@
+stages:
+  - platform-check
+  - validate
+  - 
+
+platform-check:
+  stage: platform-check
+  image: bitnami/kubectl:latest
+  script:
+    - echo "Checking Kubernetes cluster status..."
+    - kubectl version --short
+    - kubectl get nodes
+    - kubectl get pods -n kube-system
+    - kubectl get componentstatuses
+  only:
+    - main
+
+validate:
+  stage: validate
+  image: alpine/helm:3.13.2 
+  script:
+    - helm lint helm/  
+    - helm template my-release helm/ > rendered.yaml
+    - apk add --no-cache curl jq
+    - curl -sSL https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz | tar xz
+    - ./kubeval rendered.yaml
+  only:
+    - merge_requests
+    - main
